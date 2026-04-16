@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18-alpine'
-            args '-u root'
-        }
-    }
+    agent any
     environment {
         DB_PASSWORD = credentials('db-password')
         API_KEY     = credentials('api-key')
@@ -13,13 +8,19 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo "Code checked out from: ${env.GIT_URL}"
+                echo "Repo: ${env.GIT_URL}"
                 echo "Branch: ${env.GIT_BRANCH}"
                 sh 'ls -la'
             }
         }
         stage('Install') {
-            steps { sh 'npm install' }
+            steps {
+                sh '''
+                    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+                    apt-get install -y nodejs
+                    npm install
+                '''
+            }
         }
         stage('Test') {
             steps { sh 'npm test' }
@@ -27,7 +28,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo "Deploying version ${APP_VERSION}"
-                echo "DB_PASSWORD is masked: ${DB_PASSWORD}"
+                echo "Secrets are masked — DB_PASSWORD: ${DB_PASSWORD}"
             }
         }
     }
